@@ -38,8 +38,42 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         configuration.planeDetection = .horizontal
         // Run the view's session
         sceneView.session.run(configuration)
+        
+        tapGestureReco()
     }
     
+    private func tapGestureReco() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        self.sceneView.addGestureRecognizer(tapGesture)
+    }
+                                                
+    @objc func tapped(gesture: UIGestureRecognizer) {
+        
+        let sceneView = gesture.view as! ARSCNView
+        let touchLocation = gesture.location(in: sceneView)
+        
+        let hitResult = sceneView.hitTest(touchLocation, types: .existingPlaneUsingExtent)
+        
+        if !hitResult.isEmpty {
+            guard let hitResultT = hitResult.first else {
+                return
+            }
+            addBox(hitResult: hitResultT)
+            
+        }
+    }
+    
+    private func addBox(hitResult: ARHitTestResult){
+        let box = SCNBox(width: 0.1, height: 0.2, length: 0.2, chamferRadius: 0)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.blue
+        box.materials = [material]
+        let node = SCNNode(geometry: box)
+        node.position = SCNVector3(Float(hitResult.worldTransform.columns.3.x), hitResult.worldTransform.columns.3.y + Float(box.height/2), hitResult.worldTransform.columns.3.z)
+        
+        self.sceneView.scene.rootNode.addChildNode(node)
+    }
+                                                
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         

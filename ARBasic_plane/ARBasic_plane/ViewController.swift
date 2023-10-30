@@ -44,7 +44,32 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     private func tapGestureReco() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        let doubleTappGes = UITapGestureRecognizer(target: self, action: #selector(doubleTap))
+        doubleTappGes.numberOfTapsRequired = 2
+        
+        tapGesture.require(toFail: doubleTappGes)
+        
+        self.sceneView.addGestureRecognizer(doubleTappGes)
         self.sceneView.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc func doubleTap(recognizer :UIGestureRecognizer) {
+        // apply forces on virtual object
+        let sceneView = recognizer.view as! ARSCNView
+        let touchLocation = recognizer.location(in: sceneView) //cgpoint object
+        // find if coordinates are intersecting with something or not
+        
+        let hitResult = sceneView.hitTest(touchLocation,options: [:])
+        
+        if !hitResult.isEmpty {
+            // touch has intersected something
+            guard let hitRwul = hitResult.first else {return}
+            
+            let node = hitRwul.node // once we have node, we need to apply force to it with impulse
+            node.physicsBody?.applyForce(SCNVector3(hitRwul.worldCoordinates.x * Float(3.0),3.0,hitRwul.worldNormal.z),asImpulse: true)
+        }
+        
+        
     }
                                                 
     @objc func tapped(gesture: UIGestureRecognizer) {
@@ -69,7 +94,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         material.diffuse.contents = UIColor.blue
         box.materials = [material]
         let node = SCNNode(geometry: box)
-        node.position = SCNVector3(Float(hitResult.worldTransform.columns.3.x), hitResult.worldTransform.columns.3.y + Float(box.height/2), hitResult.worldTransform.columns.3.z)
+        node.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil) // dynamoc body makes boxes move
+        
+        node.physicsBody?.categoryBitMask = BodyType.box.rawValue// if two elements have different category bit mask they can collide with each other
+        node.position = SCNVector3(Float(hitResult.worldTransform.columns.3.x), hitResult.worldTransform.columns.3.y + Float(0.5), hitResult.worldTransform.columns.3.z)
         
         self.sceneView.scene.rootNode.addChildNode(node)
     }
